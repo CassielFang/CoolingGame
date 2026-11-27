@@ -31,6 +31,18 @@ namespace CoolingGame.Core
         /// <summary>执行前必须已满足的情节 flag。</summary>
         public List<string> RequiredFlags = new List<string>();
 
+        /// <summary>
+        /// 必须由这个办案人来执行（例如 "MP01" 莫里森 / "MP02" 雪莉）。
+        /// 空 = 谁都能办。主角不是卡牌，所以这里不是附加卡。
+        /// </summary>
+        public string RequiredDetectiveId;
+
+        /// <summary>完成后播放的剧情脚本 ID（策划表 VN04–VN25），可空。</summary>
+        public string DialogueId;
+
+        /// <summary>完成后触发的报纸 ID，可空。</summary>
+        public string OutputNewspaperId;
+
         /// <summary>命中后生成的新卡牌（以背面朝上出现）。</summary>
         public List<string> OutputCardIds = new List<string>();
 
@@ -48,6 +60,17 @@ namespace CoolingGame.Core
 
         /// <summary>命中后是否消耗掉附加卡牌（卡牌移出桌面）。</summary>
         public bool ConsumeContextCards;
+
+        /// <summary>
+        /// 只在这个场景里可用；空 = 任意场景。「前往」类配方通常留空，其余场景专属调查会填。
+        /// </summary>
+        public string RequiredSceneId;
+
+        /// <summary>
+        /// 命中后切换到的场景（第一章「场景切换，S00，P06 ｜ S02 ｜ 前往」）。
+        /// 空 = 不换场景；卡牌照常按 OutputCardIds 产出。
+        /// </summary>
+        public string OutputSceneId;
 
         /// <summary>
         /// 匹配精度。多个配方同时命中时取最具体的那个：

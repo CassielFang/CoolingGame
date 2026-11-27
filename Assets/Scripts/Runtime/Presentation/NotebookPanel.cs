@@ -7,26 +7,30 @@ using UnityEngine.UI;
 namespace CoolingGame.Presentation
 {
     /// <summary>
-    /// 笔记本：两个选项卡（线索页 / 问题页），线索可搜索、置顶，
-    /// 问题页五个卡槽填满即结案。
+    /// 笔记本：两个选项卡（线索页 / 问题页）。
+    /// 问题页支持多张页（第一章 Q01–Q05）：顶部页签切换，每页的槽位可以填**卡牌**或**线索**，
+    /// 进度页（Q04）显示「线索 n/7」。结案按钮只在结案页生效。
     /// </summary>
     public sealed class NotebookPanel : MonoBehaviour
     {
         private sealed class SlotRow
         {
-            public QuestionSlotKind Kind;
+            public string SlotId;
             public Text Value;
             public Button Clear;
+            public Button Choose;
         }
 
         private CaseSession _session;
         private Action<string, bool> _notify;
+        private Action _onSolved;
 
         private RectTransform _body;
         private RectTransform _clueBody;
         private RectTransform _questionBody;
         private RectTransform _clueList;
         private RectTransform _questionList;
+        private RectTransform _pageTabs;
         private RectTransform _picker;
         private RectTransform _pickerList;
         private Text _pickerTitle;
@@ -35,7 +39,9 @@ namespace CoolingGame.Presentation
         private Button _tabClues;
         private Button _tabQuestions;
         private Button _submit;
-        private QuestionSlotKind? _pickerTarget;
+        private string _pickerPageId;
+        private string _pickerSlotId;
+        private string _activePageId;
         private string _query = string.Empty;
         private int _tabIndex;
         private bool _bodiesBuilt;
@@ -46,13 +52,14 @@ namespace CoolingGame.Presentation
             get { return gameObject.activeSelf; }
         }
 
-        public static NotebookPanel Create(Transform parent, Action<string, bool> notify)
+        public static NotebookPanel Create(Transform parent, Action<string, bool> notify, Action onSolved = null)
         {
             RectTransform root = UIFactory.MakePanel(parent, "Notebook", new Color(0f, 0f, 0f, 0.72f), false);
             UIFactory.Stretch(root);
 
             var panel = root.gameObject.AddComponent<NotebookPanel>();
             panel._notify = notify;
+            panel._onSolved = onSolved;
             panel.BuildChrome(root);
             root.gameObject.SetActive(false);
             return panel;
@@ -61,6 +68,7 @@ namespace CoolingGame.Presentation
         public void Bind(CaseSession session)
         {
             _session = session;
+            _activePageId = null;
             BuildBodies();
             Refresh();
         }
@@ -80,31 +88,47 @@ namespace CoolingGame.Presentation
             gameObject.SetActive(false);
         }
 
+        /// <summary>打开问题页并翻到指定页（自动化/调试用）。</summary>
+        public void ShowPage(string pageId)
+        {
+            _activePageId = pageId;
+            Show(1);
+        }
+
         // ── 搭建 ────────────────────────────────────────────────────────────
 
         private void BuildChrome(RectTransform root)
         {
-            RectTransform panel = UIFactory.MakePanel(root, "Book", Palette.Paper);
+            RectTransform panel = UIFactory.MakePanel(root, "Book", new Color(0.90f, 0.87f, 0.79f, 1f));
             UIFactory.Stretch(panel, 190, 190, 70, 70);
 
             Text title = UIFactory.MakeText(panel, "Title", "侦探笔记本", 34, Palette.Ink, TextAnchor.MiddleLeft,
                 FontStyle.Bold);
             UIFactory.PlaceLeftTop(title.rectTransform, 36, 24, 480, 48);
 
+            // 页面左侧的装订线，让它像一本摊开的笔记
+            RectTransform spine = UIFactory.MakePanel(panel, "Spine",
+                new Color(Palette.Ink.r, Palette.Ink.g, Palette.Ink.b, 0.16f));
+            spine.anchorMin = new Vector2(0f, 0f);
+            spine.anchorMax = new Vector2(0f, 1f);
+            spine.pivot = new Vector2(0f, 0.5f);
+            spine.anchoredPosition = new Vector2(64f, 0f);
+            spine.sizeDelta = new Vector2(2f, -48f);
+
             _tabClues = UIFactory.MakeButton(panel, "TabClues", "线索页", () => SwitchTab(0), Palette.Gold,
                 Palette.Ink, 21);
-            UIFactory.PlaceLeftTop(_tabClues.GetComponent<RectTransform>(), 36, 88, 170, 50);
+            UIFactory.PlaceLeftTop(_tabClues.GetComponent<RectTransform>(), 80, 88, 170, 50);
 
             _tabQuestions = UIFactory.MakeButton(panel, "TabQuestions", "问题页", () => SwitchTab(1),
                 Palette.PaperDark, Palette.Ink, 21);
-            UIFactory.PlaceLeftTop(_tabQuestions.GetComponent<RectTransform>(), 216, 88, 170, 50);
+            UIFactory.PlaceLeftTop(_tabQuestions.GetComponent<RectTransform>(), 260, 88, 170, 50);
 
             Button close = UIFactory.MakeButton(panel, "Close", "关闭", Hide, Palette.PaperDark, Palette.Ink, 20);
             UIFactory.PlaceRightTop(close.GetComponent<RectTransform>(), 36, 24, 130, 50);
 
             _status = UIFactory.MakeText(panel, "Status", string.Empty, 18,
                 new Color(Palette.Ink.r, Palette.Ink.g, Palette.Ink.b, 0.65f), TextAnchor.MiddleLeft);
-            UIFactory.PlaceLeftBottom(_status.rectTransform, 36, 34, 900, 44);
+            UIFactory.PlaceLeftBottom(_status.rectTransform, 80, 34, 1060, 44);
 
             _submit = UIFactory.MakeButton(panel, "Submit", "结案", Submit, Palette.Red, Palette.Paper, 22);
             UIFactory.PlaceRightBottom(_submit.GetComponent<RectTransform>(), 36, 30, 220, 58);
@@ -113,7 +137,7 @@ namespace CoolingGame.Presentation
             RectTransform bodyRect = _body;
             bodyRect.anchorMin = Vector2.zero;
             bodyRect.anchorMax = Vector2.one;
-            bodyRect.offsetMin = new Vector2(36f, 96f);
+            bodyRect.offsetMin = new Vector2(80f, 96f);
             bodyRect.offsetMax = new Vector2(-36f, -150f);
 
             _clueBody = UIFactory.MakePanel(_body, "ClueBody", new Color(0f, 0f, 0f, 0f), false);
@@ -134,7 +158,7 @@ namespace CoolingGame.Presentation
 
             _bodiesBuilt = true;
 
-            // 线索页：搜索框 + 滚动列表
+            // ── 线索页：搜索框 + 滚动列表 ────────────────────────────────
             RectTransform searchBox = UIFactory.MakePanel(_clueBody, "Search", Palette.PaperDark);
             UIFactory.PlaceLeftTop(searchBox, 0, 0, 560, 50);
 
@@ -168,47 +192,15 @@ namespace CoolingGame.Presentation
             UIFactory.MakeScroll(scrollArea, out _clueList, new Color(Palette.PaperDark.r, Palette.PaperDark.g,
                 Palette.PaperDark.b, 0.25f));
 
-            // 问题页：五行卡槽
-            _questionList = _questionBody;
-            var layout = _questionBody.gameObject.AddComponent<VerticalLayoutGroup>();
-            layout.spacing = 10f;
-            layout.childControlWidth = true;
-            layout.childControlHeight = true;
-            layout.childForceExpandWidth = true;
-            layout.childForceExpandHeight = false;
-            layout.childAlignment = TextAnchor.UpperCenter;
-            layout.padding = new RectOffset(0, 0, 0, 0);
+            // ── 问题页：页签 + 滚动列表 ──────────────────────────────────
+            _pageTabs = UIFactory.MakePanel(_questionBody, "PageTabs", new Color(0f, 0f, 0f, 0f), false);
+            UIFactory.PlaceLeftTop(_pageTabs, 0, 0, 1360, 54);
 
-            foreach (QuestionSlotState slot in _session.QuestionPage.Slots)
-            {
-                RectTransform row = UIFactory.MakePanel(_questionList, "Slot_" + slot.Kind, Palette.PaperDark);
-                var element = row.gameObject.AddComponent<LayoutElement>();
-                element.preferredHeight = 96f;
-                element.minHeight = 96f;
-
-                Text label = UIFactory.MakeText(row, "Label", slot.Definition.Label, 26, Palette.Ink,
-                    TextAnchor.MiddleLeft, FontStyle.Bold);
-                UIFactory.PlaceLeftTop(label.rectTransform, 20, 16, 140, 36);
-
-                Text slotHint = UIFactory.MakeText(row, "Hint", slot.Definition.Hint, 15,
-                    new Color(Palette.Ink.r, Palette.Ink.g, Palette.Ink.b, 0.55f), TextAnchor.MiddleLeft);
-                UIFactory.PlaceLeftTop(slotHint.rectTransform, 20, 54, 300, 26);
-
-                Text value = UIFactory.MakeText(row, "Value", "— 未填 —", 22,
-                    new Color(Palette.Ink.r, Palette.Ink.g, Palette.Ink.b, 0.45f), TextAnchor.MiddleLeft);
-                UIFactory.PlaceLeftTop(value.rectTransform, 300, 28, 700, 40);
-
-                QuestionSlotKind kind = slot.Kind;
-                Button choose = UIFactory.MakeButton(row, "Choose", "选择卡牌", () => OpenPicker(kind), Palette.Gold,
-                    Palette.Ink, 18);
-                UIFactory.PlaceRightTop(choose.GetComponent<RectTransform>(), 186, 26, 150, 44);
-
-                Button clear = UIFactory.MakeButton(row, "Clear", "清空", () => ClearSlot(kind), Palette.Paper,
-                    Palette.Ink, 18);
-                UIFactory.PlaceRightTop(clear.GetComponent<RectTransform>(), 16, 26, 160, 44);
-
-                _slotRows.Add(new SlotRow { Kind = kind, Value = value, Clear = clear });
-            }
+            RectTransform questionScroll = UIFactory.MakePanel(_questionBody, "QuestionScroll",
+                new Color(0f, 0f, 0f, 0f), false);
+            UIFactory.Stretch(questionScroll, 0, 0, 64, 0);
+            UIFactory.MakeScroll(questionScroll, out _questionList, new Color(Palette.PaperDark.r,
+                Palette.PaperDark.g, Palette.PaperDark.b, 0.25f));
         }
 
         private void BuildPicker(RectTransform root)
@@ -221,11 +213,11 @@ namespace CoolingGame.Presentation
             panel.anchorMax = new Vector2(0.5f, 0.5f);
             panel.pivot = new Vector2(0.5f, 0.5f);
             panel.anchoredPosition = Vector2.zero;
-            panel.sizeDelta = new Vector2(720f, 760f);
+            panel.sizeDelta = new Vector2(860f, 820f);
 
-            _pickerTitle = UIFactory.MakeText(panel, "Title", "选择卡牌", 28, Palette.Ink, TextAnchor.MiddleLeft,
-                FontStyle.Bold);
-            UIFactory.PlaceLeftTop(_pickerTitle.rectTransform, 28, 22, 600, 44);
+            _pickerTitle = UIFactory.MakeText(panel, "Title", "选择卡牌或线索", 28, Palette.Ink,
+                TextAnchor.MiddleLeft, FontStyle.Bold);
+            UIFactory.PlaceLeftTop(_pickerTitle.rectTransform, 28, 22, 740, 44);
 
             Button cancel = UIFactory.MakeButton(panel, "Cancel", "取消", ClosePicker, Palette.PaperDark, Palette.Ink,
                 18);
@@ -255,14 +247,6 @@ namespace CoolingGame.Presentation
             }
 
             ApplyTabStyle();
-            _status.text = string.Format("线索 {0} 条 · 问题页 {1}/{2} {3}",
-                _session.Notebook.Count,
-                _session.QuestionPage.FilledCount,
-                _session.QuestionPage.SlotCount,
-                _session.Notebook.UnreadCount > 0 ? string.Format("· 新线索 {0}", _session.Notebook.UnreadCount) : string.Empty);
-
-            _submit.interactable = _session.QuestionPage.IsFilled;
-
             _clueBody.gameObject.SetActive(_tabIndex == 0);
             _questionBody.gameObject.SetActive(_tabIndex == 1);
 
@@ -272,8 +256,10 @@ namespace CoolingGame.Presentation
             }
             else
             {
-                RefreshQuestionList();
+                RefreshQuestionPages();
             }
+
+            RefreshStatus();
         }
 
         private void ApplyTabStyle()
@@ -354,26 +340,203 @@ namespace CoolingGame.Presentation
             }
         }
 
-        private void RefreshQuestionList()
+        // ── 问题页（多页） ──────────────────────────────────────────────────
+
+        private void RefreshQuestionPages()
         {
-            for (int i = 0; i < _slotRows.Count; i++)
+            IReadOnlyList<QuestionPageModel> pages = _session.QuestionBook.Pages;
+
+            if (pages.Count == 0)
             {
-                SlotRow row = _slotRows[i];
-                QuestionSlotState state = _session.QuestionPage.Find(row.Kind);
-                if (state == null)
+                UIFactory.ClearChildren(_pageTabs);
+                UIFactory.ClearChildren(_questionList);
+                Text empty = UIFactory.MakeText(_questionList, "Empty", "这个案件还没有问题页。", 20,
+                    new Color(Palette.Ink.r, Palette.Ink.g, Palette.Ink.b, 0.5f), TextAnchor.MiddleCenter);
+                var element = empty.gameObject.AddComponent<LayoutElement>();
+                element.preferredHeight = 80f;
+                return;
+            }
+
+            QuestionPageModel active = _session.QuestionBook.Find(_activePageId);
+            if (active == null)
+            {
+                active = pages[0];
+            }
+
+            _activePageId = active.Id;
+
+            BuildPageTabs(pages, active);
+            BuildPageContent(active);
+
+            _submit.interactable = IsFinalPage(active) && active.IsFilled;
+        }
+
+        private void BuildPageTabs(IReadOnlyList<QuestionPageModel> pages, QuestionPageModel active)
+        {
+            UIFactory.ClearChildren(_pageTabs);
+
+            for (int i = 0; i < pages.Count; i++)
+            {
+                QuestionPageModel page = pages[i];
+                bool isActive = page.Id == active.Id;
+
+                string label = string.IsNullOrEmpty(page.Title) ? page.Id : page.Title;
+                if (label.Length > 9)
                 {
-                    continue;
+                    label = label.Substring(0, 9);
                 }
 
-                CardState card = state.IsFilled ? _session.GetCard(state.PlacedCardId) : null;
-                row.Value.text = card != null
-                    ? Palette.CategoryGlyph(card.Definition.Category) + "  " + card.Definition.DisplayName
-                    : "— 未填 —";
-                row.Value.color = card != null
-                    ? Palette.Ink
-                    : new Color(Palette.Ink.r, Palette.Ink.g, Palette.Ink.b, 0.45f);
-                row.Clear.interactable = state.IsFilled;
+                string suffix = page.IsProgressPage
+                    ? string.Format(" {0}/{1}", CountCollected(page), RequiredCount(page))
+                    : page.IsFilled ? " ✓" : string.Empty;
+
+                string pageId = page.Id;
+                Button tab = UIFactory.MakeButton(_pageTabs, "Page_" + page.Id, label + suffix,
+                    () => SwitchPage(pageId), isActive ? Palette.Gold : Palette.PaperDark, Palette.Ink, 18);
+                UIFactory.PlaceLeftTop(tab.GetComponent<RectTransform>(), i * 214, 0, 206, 52);
             }
+        }
+
+        private void BuildPageContent(QuestionPageModel page)
+        {
+            UIFactory.ClearChildren(_questionList);
+            _slotRows.Clear();
+
+            if (page.IsProgressPage)
+            {
+                BuildProgressPageContent(page);
+                return;
+            }
+
+            if (page.Slots.Count == 0)
+            {
+                Text empty = UIFactory.MakeText(_questionList, "Empty", "这一页没有要填的内容。", 20,
+                    new Color(Palette.Ink.r, Palette.Ink.g, Palette.Ink.b, 0.5f), TextAnchor.MiddleCenter);
+                var element = empty.gameObject.AddComponent<LayoutElement>();
+                element.preferredHeight = 80f;
+                return;
+            }
+
+            for (int i = 0; i < page.Slots.Count; i++)
+            {
+                QuestionSlotState slot = page.Slots[i];
+                RectTransform row = UIFactory.MakePanel(_questionList, "Slot_" + slot.SlotId, Palette.PaperDark);
+                var rowElement = row.gameObject.AddComponent<LayoutElement>();
+                rowElement.preferredHeight = 96f;
+                rowElement.minHeight = 96f;
+
+                Text label = UIFactory.MakeText(row, "Label", slot.Definition.Label, 26, Palette.Ink,
+                    TextAnchor.MiddleLeft, FontStyle.Bold);
+                UIFactory.PlaceLeftTop(label.rectTransform, 20, 16, 180, 36);
+
+                Text hint = UIFactory.MakeText(row, "Hint", slot.Definition.Hint, 15,
+                    new Color(Palette.Ink.r, Palette.Ink.g, Palette.Ink.b, 0.55f), TextAnchor.MiddleLeft);
+                UIFactory.PlaceLeftTop(hint.rectTransform, 20, 54, 300, 26);
+
+                Text value = UIFactory.MakeText(row, "Value", "— 未填 —", 20,
+                    new Color(Palette.Ink.r, Palette.Ink.g, Palette.Ink.b, 0.45f), TextAnchor.MiddleLeft);
+                UIFactory.PlaceLeftTop(value.rectTransform, 210, 28, 780, 40);
+
+                string pageId = page.Id;
+                string slotId = slot.SlotId;
+                Button choose = UIFactory.MakeButton(row, "Choose", "填入", () => OpenPicker(pageId, slotId),
+                    Palette.Gold, Palette.Ink, 18);
+                UIFactory.PlaceRightTop(choose.GetComponent<RectTransform>(), 186, 26, 150, 44);
+
+                Button clear = UIFactory.MakeButton(row, "Clear", "清空", () => ClearSlot(pageId, slotId),
+                    Palette.Paper, Palette.Ink, 18);
+                UIFactory.PlaceRightTop(clear.GetComponent<RectTransform>(), 16, 26, 160, 44);
+
+                _slotRows.Add(new SlotRow { SlotId = slot.SlotId, Value = value, Clear = clear, Choose = choose });
+                RefreshSlotRow(page, slot);
+            }
+        }
+
+        private void BuildProgressPageContent(QuestionPageModel page)
+        {
+            int collected = CountCollected(page);
+            int required = RequiredCount(page);
+
+            RectTransform bar = UIFactory.MakePanel(_questionList, "Progress", Palette.PaperDark);
+            var barElement = bar.gameObject.AddComponent<LayoutElement>();
+            barElement.preferredHeight = 70f;
+            barElement.minHeight = 70f;
+
+            Text barText = UIFactory.MakeText(bar, "Text",
+                string.Format("线索 {0} / {1}", collected, required), 26, Palette.Ink,
+                TextAnchor.MiddleLeft, FontStyle.Bold);
+            UIFactory.PlaceLeftTop(barText.rectTransform, 22, 16, 400, 40);
+
+            Text explain = UIFactory.MakeText(bar, "Explain",
+                "收齐这些线索后会自动进入下一段。缺的线索在「线索页」里还没出现。", 16,
+                new Color(Palette.Ink.r, Palette.Ink.g, Palette.Ink.b, 0.6f), TextAnchor.MiddleRight);
+            UIFactory.PlaceRightTop(explain.rectTransform, 22, 20, 900, 36);
+
+            QuestionPageDefinition definition = page.Definition;
+            if (definition == null || definition.RequiredClueIds == null)
+            {
+                return;
+            }
+
+            for (int i = 0; i < definition.RequiredClueIds.Count; i++)
+            {
+                string clueId = definition.RequiredClueIds[i];
+                bool has = _session.Notebook.Contains(clueId);
+                ClueDefinition clue = _session.Case.FindClue(clueId);
+
+                RectTransform row = UIFactory.MakePanel(_questionList, "Req_" + clueId,
+                    has ? new Color(0.80f, 0.86f, 0.74f) : new Color(0.86f, 0.80f, 0.67f));
+                var element = row.gameObject.AddComponent<LayoutElement>();
+                element.preferredHeight = 66f;
+                element.minHeight = 66f;
+
+                Text mark = UIFactory.MakeText(row, "Mark", has ? "✓" : "○", 26,
+                    has ? Palette.Green : new Color(Palette.Ink.r, Palette.Ink.g, Palette.Ink.b, 0.45f),
+                    TextAnchor.MiddleCenter, FontStyle.Bold);
+                UIFactory.PlaceLeftTop(mark.rectTransform, 16, 12, 46, 42);
+
+                string text = has
+                    ? (clue != null ? clue.Text : clueId)
+                    : "（还没找到这条线索）";
+                Text body = UIFactory.MakeText(row, "Text", text, 20,
+                    has ? Palette.Ink : new Color(Palette.Ink.r, Palette.Ink.g, Palette.Ink.b, 0.5f),
+                    TextAnchor.MiddleLeft);
+                UIFactory.PlaceLeftTop(body.rectTransform, 66, 14, 1120, 40);
+            }
+        }
+
+        private void RefreshSlotRow(QuestionPageModel page, QuestionSlotState slot)
+        {
+            SlotRow row = _slotRows.Find(r => r.SlotId == slot.SlotId);
+            if (row == null)
+            {
+                return;
+            }
+
+            if (!slot.IsFilled)
+            {
+                row.Value.text = "— 未填 —";
+                row.Value.color = new Color(Palette.Ink.r, Palette.Ink.g, Palette.Ink.b, 0.45f);
+            }
+            else if (slot.HoldsClue)
+            {
+                ClueDefinition clue = _session.Case.FindClue(slot.PlacedClueId);
+                string text = clue != null ? clue.Text : slot.PlacedClueId;
+                row.Value.text = "◆ " + Trim(text, 34);
+                row.Value.color = Palette.Ink;
+            }
+            else
+            {
+                CardState card = _session.GetCard(slot.PlacedCardId);
+                CardDefinition definition = card != null ? card.Definition : _session.Case.FindCard(slot.PlacedCardId);
+                row.Value.text = definition != null
+                    ? Palette.CategoryGlyph(definition.Category) + "  " + definition.DisplayName
+                    : slot.PlacedCardId;
+                row.Value.color = Palette.Ink;
+            }
+
+            row.Clear.interactable = slot.IsFilled && !slot.IsAutoFilled;
+            row.Choose.interactable = !slot.IsAutoFilled;
         }
 
         private void RefreshStatus()
@@ -383,11 +546,23 @@ namespace CoolingGame.Presentation
                 return;
             }
 
-            _status.text = string.Format("线索 {0} 条 · 问题页 {1}/{2}", _session.Notebook.Count,
-                _session.QuestionPage.FilledCount, _session.QuestionPage.SlotCount);
+            string scene = _session.CurrentScene != null ? _session.CurrentScene.DisplayName : "—";
+            string stage = _session.CurrentStage != null ? _session.CurrentStage.DisplayName : "单阶段";
+
+            _status.text = string.Format("{0} · {1} · 线索 {2} 条{3}",
+                scene,
+                stage,
+                _session.Notebook.Count,
+                _session.Notebook.UnreadCount > 0 ? string.Format("（新 {0}）", _session.Notebook.UnreadCount) : string.Empty);
         }
 
         // ── 交互 ────────────────────────────────────────────────────────────
+
+        private void SwitchPage(string pageId)
+        {
+            _activePageId = pageId;
+            RefreshQuestionPages();
+        }
 
         private void TogglePin(string clueId)
         {
@@ -395,72 +570,139 @@ namespace CoolingGame.Presentation
             RefreshClueList();
         }
 
-        private void ClearSlot(QuestionSlotKind kind)
+        private void ClearSlot(string pageId, string slotId)
         {
-            _session.ClearAnswer(kind);
-            RefreshQuestionList();
-            RefreshStatus();
-            _submit.interactable = _session.QuestionPage.IsFilled;
+            _session.ClearAnswer(pageId, slotId);
+            RefreshQuestionPages();
         }
 
-        private void OpenPicker(QuestionSlotKind kind)
+        private void OpenPicker(string pageId, string slotId)
         {
-            _pickerTarget = kind;
-            QuestionSlotDefinition definition = _session.Case.FindQuestionSlot(kind);
-            _pickerTitle.text = "为「" + (definition != null ? definition.Label : kind.ToString()) + "」选择一张卡";
+            QuestionPageModel page = _session.QuestionBook.Find(pageId);
+            QuestionSlotState slot = page != null ? page.FindSlot(slotId) : null;
+            if (slot == null)
+            {
+                return;
+            }
+
+            _pickerPageId = pageId;
+            _pickerSlotId = slotId;
+            _pickerTitle.text = "为「" + slot.Definition.Label + "」选择一条线索或一张卡";
 
             UIFactory.ClearChildren(_pickerList);
-            foreach (CardState card in _session.GetUsableCards())
+
+            AddPickerSection("笔记本里的线索");
+
+            IReadOnlyList<ClueEntry> clues = _session.Notebook.OrderedClues();
+            for (int i = 0; i < clues.Count; i++)
             {
-                string cardId = card.Id;
-                Button button = UIFactory.MakeButton(_pickerList, "Pick_" + cardId,
-                    Palette.CategoryGlyph(card.Definition.Category) + "   " + card.Definition.DisplayName,
-                    () => Pick(cardId), Palette.PaperDark, Palette.Ink, 20);
+                string clueId = clues[i].ClueId;
+                string clueText = Trim(clues[i].Text, 30);
+                Button button = UIFactory.MakeButton(_pickerList, "Clue_" + clueId, "◆  " + clueText,
+                    () => PickClue(clueId), Palette.PaperDark, Palette.Ink, 19);
                 var element = button.gameObject.AddComponent<LayoutElement>();
-                element.preferredHeight = 60f;
-                element.minHeight = 60f;
+                element.preferredHeight = 56f;
+                element.minHeight = 56f;
+            }
+
+            AddPickerSection("桌面上的卡牌");
+
+            IReadOnlyList<CardState> cards = _session.GetUsableCards();
+            for (int i = 0; i < cards.Count; i++)
+            {
+                string cardId = cards[i].Id;
+                Button button = UIFactory.MakeButton(_pickerList, "Card_" + cardId,
+                    Palette.CategoryGlyph(cards[i].Definition.Category) + "   " + cards[i].Definition.DisplayName,
+                    () => PickCard(cardId), Palette.Paper, Palette.Ink, 19);
+                var element = button.gameObject.AddComponent<LayoutElement>();
+                element.preferredHeight = 56f;
+                element.minHeight = 56f;
             }
 
             _picker.gameObject.SetActive(true);
             _picker.SetAsLastSibling();
         }
 
+        private void AddPickerSection(string title)
+        {
+            Text header = UIFactory.MakeText(_pickerList, "Section_" + title, title, 17,
+                new Color(Palette.Ink.r, Palette.Ink.g, Palette.Ink.b, 0.6f), TextAnchor.MiddleLeft,
+                FontStyle.Bold);
+            var element = header.gameObject.AddComponent<LayoutElement>();
+            element.preferredHeight = 34f;
+            element.minHeight = 34f;
+        }
+
         private void ClosePicker()
         {
-            _pickerTarget = null;
+            _pickerPageId = null;
+            _pickerSlotId = null;
             if (_picker != null)
             {
                 _picker.gameObject.SetActive(false);
             }
         }
 
-        private void Pick(string cardId)
+        private void PickClue(string clueId)
         {
-            if (!_pickerTarget.HasValue)
+            if (string.IsNullOrEmpty(_pickerPageId) || string.IsNullOrEmpty(_pickerSlotId))
             {
                 return;
             }
 
-            _session.PlaceAnswer(_pickerTarget.Value, cardId);
-            ClosePicker();
-            RefreshQuestionList();
-            RefreshStatus();
-            _submit.interactable = _session.QuestionPage.IsFilled;
+            _session.PlaceClueAnswer(_pickerPageId, _pickerSlotId, clueId);
+            AfterPick();
+        }
 
-            if (_session.QuestionPage.IsFilled && _notify != null)
+        private void PickCard(string cardId)
+        {
+            if (string.IsNullOrEmpty(_pickerPageId) || string.IsNullOrEmpty(_pickerSlotId))
             {
-                _notify("问题页已填满，可以结案了。", true);
+                return;
+            }
+
+            _session.PlaceAnswer(_pickerPageId, _pickerSlotId, cardId);
+            AfterPick();
+        }
+
+        private void AfterPick()
+        {
+            string pageId = _pickerPageId;
+            ClosePicker();
+            _activePageId = pageId;
+            RefreshQuestionPages();
+
+            QuestionPageModel page = _session.QuestionBook.Find(pageId);
+            if (page != null && page.IsFilled && _notify != null)
+            {
+                _notify(string.Format("「{0}」填好了。", page.Title), true);
             }
         }
 
         private void Submit()
         {
-            if (_session == null || !_session.QuestionPage.IsFilled)
+            if (_session == null)
             {
                 return;
             }
 
-            bool correct = _session.IsCaseSolved;
+            QuestionPageModel page = _session.QuestionBook.Find(_activePageId);
+            if (page == null || !IsFinalPage(page))
+            {
+                if (_notify != null)
+                {
+                    _notify("这一页不是结案页，结案请到「杀人案综合页」。", false);
+                }
+
+                return;
+            }
+
+            if (!page.IsFilled)
+            {
+                return;
+            }
+
+            bool correct = page.IsCorrect;
             if (_notify != null)
             {
                 _notify(correct
@@ -469,7 +711,81 @@ namespace CoolingGame.Presentation
                     correct);
             }
 
-            Hide();
+            if (correct)
+            {
+                Hide();
+
+                if (_onSolved != null)
+                {
+                    _onSolved();
+                }
+            }
+        }
+
+        /// <summary>结案页提交（自动化/调试用，等同于点「结案」）。</summary>
+        public void SubmitFinal()
+        {
+            Submit();
+        }
+
+        // ── 小工具 ──────────────────────────────────────────────────────────
+
+        private bool IsFinalPage(QuestionPageModel page)
+        {
+            if (page == null)
+            {
+                return false;
+            }
+
+            string finalId = _session.Case.FinalQuestionPageId;
+            if (!string.IsNullOrEmpty(finalId))
+            {
+                return page.Id == finalId;
+            }
+
+            IReadOnlyList<QuestionPageModel> pages = _session.QuestionBook.Pages;
+            return pages.Count > 0 && page.Id == pages[pages.Count - 1].Id;
+        }
+
+        private int CountCollected(QuestionPageModel page)
+        {
+            QuestionPageDefinition definition = page.Definition;
+            if (definition == null || definition.RequiredClueIds == null)
+            {
+                return 0;
+            }
+
+            int count = 0;
+            for (int i = 0; i < definition.RequiredClueIds.Count; i++)
+            {
+                if (_session.Notebook.Contains(definition.RequiredClueIds[i]))
+                {
+                    count++;
+                }
+            }
+
+            return count;
+        }
+
+        private int RequiredCount(QuestionPageModel page)
+        {
+            QuestionPageDefinition definition = page.Definition;
+            if (definition == null)
+            {
+                return 0;
+            }
+
+            return definition.RequiredClueIds != null ? definition.RequiredClueIds.Count : 0;
+        }
+
+        private static string Trim(string text, int limit)
+        {
+            if (string.IsNullOrEmpty(text))
+            {
+                return string.Empty;
+            }
+
+            return text.Length <= limit ? text : text.Substring(0, limit) + "…";
         }
     }
 }

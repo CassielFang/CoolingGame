@@ -64,6 +64,9 @@ namespace CoolingGame.Presentation
         private static Sprite _white;
         private static Sprite _wood;
         private static Sprite _vignette;
+        private static Sprite _lightPool;
+        private static Sprite _softShadow;
+        private static Sprite _lightGradient;
 
         public static Font Font
         {
@@ -217,6 +220,117 @@ namespace CoolingGame.Presentation
             }
         }
 
+        /// <summary>台灯光池：中心亮、边缘暗的径向渐变，用来压出「桌上有一盏灯」。</summary>
+        public static Sprite LightPool
+        {
+            get
+            {
+                if (_lightPool != null)
+                {
+                    return _lightPool;
+                }
+
+                const int size = 256;
+                var texture = new Texture2D(size, size, TextureFormat.RGBA32, false)
+                {
+                    wrapMode = TextureWrapMode.Clamp,
+                    filterMode = FilterMode.Bilinear
+                };
+
+                var center = new Vector2((size - 1) * 0.5f, (size - 1) * 0.5f);
+                float maxDistance = size * 0.5f;
+                for (int y = 0; y < size; y++)
+                {
+                    for (int x = 0; x < size; x++)
+                    {
+                        float distance = Vector2.Distance(new Vector2(x, y), center) / maxDistance;
+                        float falloff = Mathf.Clamp01(1f - distance);
+                        float alpha = falloff * falloff * falloff;
+                        texture.SetPixel(x, y, new Color(1f, 1f, 1f, alpha));
+                    }
+                }
+
+                texture.Apply();
+                _lightPool = Sprite.Create(texture, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), 100f);
+                return _lightPool;
+            }
+        }
+
+        /// <summary>软边圆角矩形：卡片的投影用（硬边会像"第二张黑卡"）。</summary>
+        public static Sprite SoftShadow
+        {
+            get
+            {
+                if (_softShadow != null)
+                {
+                    return _softShadow;
+                }
+
+                const int size = 128;
+                const float corner = 24f;
+                const float feather = 11f;
+                var texture = new Texture2D(size, size, TextureFormat.RGBA32, false)
+                {
+                    wrapMode = TextureWrapMode.Clamp,
+                    filterMode = FilterMode.Bilinear
+                };
+
+                float half = size * 0.5f - 6f;
+                for (int y = 0; y < size; y++)
+                {
+                    for (int x = 0; x < size; x++)
+                    {
+                        // 圆角矩形的有符号距离场，再对边缘做羽化
+                        float px = Mathf.Abs(x - size * 0.5f + 0.5f) - (half - corner);
+                        float py = Mathf.Abs(y - size * 0.5f + 0.5f) - (half - corner);
+                        float outside = Mathf.Sqrt(Mathf.Max(px, 0f) * Mathf.Max(px, 0f) +
+                                                   Mathf.Max(py, 0f) * Mathf.Max(py, 0f));
+                        float dist = outside + Mathf.Min(Mathf.Max(px, py), 0f) - corner;
+                        float alpha = Mathf.Clamp01(1f - (dist + feather * 0.5f) / feather);
+                        alpha = alpha * alpha * (3f - 2f * alpha);
+                        texture.SetPixel(x, y, new Color(1f, 1f, 1f, alpha));
+                    }
+                }
+
+                texture.Apply();
+                _softShadow = Sprite.Create(texture, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), 100f);
+                return _softShadow;
+            }
+        }
+
+        /// <summary>卡片受光渐变：左下暗、右上亮（灯在右上）。</summary>
+        public static Sprite LightGradient
+        {
+            get
+            {
+                if (_lightGradient != null)
+                {
+                    return _lightGradient;
+                }
+
+                const int size = 128;
+                var texture = new Texture2D(size, size, TextureFormat.RGBA32, false)
+                {
+                    wrapMode = TextureWrapMode.Clamp,
+                    filterMode = FilterMode.Bilinear
+                };
+
+                for (int y = 0; y < size; y++)
+                {
+                    for (int x = 0; x < size; x++)
+                    {
+                        float t = (x + y) / (2f * (size - 1));
+                        float alpha = t * t * 0.75f;
+                        texture.SetPixel(x, y, new Color(1f, 1f, 1f, alpha));
+                    }
+                }
+
+                texture.Apply();
+                _lightGradient = Sprite.Create(texture, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), 100f);
+                return _lightGradient;
+            }
+        }
+
         public static RectTransform MakePanel(Transform parent, string name, Color color, bool rounded = true, float radius = 14f)
         {
             var go = new GameObject(name, typeof(RectTransform), typeof(Image));
@@ -331,9 +445,15 @@ namespace CoolingGame.Presentation
 
         public static void ClearChildren(Transform parent)
         {
+            // 先把子物体移出层级再销毁：Destroy 是延迟到帧末的，
+            // 不移出去的话同一帧里旧对象还挂在 parent 下，会被误当成现存元素
+            // （重复计数、位置写到已销毁的对象上，牌就「弹回原位」）。
             for (int i = parent.childCount - 1; i >= 0; i--)
             {
-                UnityEngine.Object.Destroy(parent.GetChild(i).gameObject);
+                GameObject child = parent.GetChild(i).gameObject;
+                child.SetActive(false);
+                child.transform.SetParent(null, false);
+                UnityEngine.Object.Destroy(child);
             }
         }
 

@@ -25,6 +25,9 @@ namespace CoolingGame.Core
         /// <summary>时间预算不够。</summary>
         NotEnoughTime,
 
+        /// <summary>这个配方要另一个办案人来做（主角是切换的，不是卡牌）。</summary>
+        WrongDetective,
+
         /// <summary>案件已经填完，不能再行动。</summary>
         CaseClosed
     }
@@ -60,6 +63,15 @@ namespace CoolingGame.Core
 
         /// <summary>需要播放的情节节点，可空。</summary>
         public string StoryNodeId { get; internal set; }
+
+        /// <summary>需要播放的剧情脚本 ID（每次调查后念一段），可空。</summary>
+        public string DialogueId { get; internal set; }
+
+        /// <summary>需要展示的报纸 ID，可空。</summary>
+        public string NewspaperId { get; internal set; }
+
+        /// <summary>本次行动切换到的场景 ID（「前往」类配方），没有切换时为 null。</summary>
+        public string SceneId { get; internal set; }
 
         /// <summary>本次行动消耗的时间单位。</summary>
         public int TimeCost { get; internal set; }
