@@ -116,3 +116,6 @@ InitTestScene*.unity*
 # Build 产物（体积大，不进仓库）
 /Builds/
 /Builds
+
+# Excel/WPS 打开表格时生成的锁文件
+~\$*
