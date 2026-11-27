@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using CoolingGame.Core;
+using CoolingGame.Runtime;
 using CoolingGame.Core.Samples;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -65,6 +66,7 @@ namespace CoolingGame.Presentation
         private void Start()
         {
             _definition = ResolveDefinition();
+            ApplyDialogueOverride(_definition);
             StartNewSession();
             BuildUi();
             _notebook.Bind(_session);
@@ -80,6 +82,32 @@ namespace CoolingGame.Presentation
             {
                 ShowToast("点击任意一张卡牌开始调查。", true);
             }
+        }
+
+        /// <summary>
+        /// 剧本优先读 Resources/Cases/Chapter1Dialogues.json：
+        /// 这样改台词只用改 JSON（剧本编辑器直接写），不必重新生成 C# 再编译。
+        /// </summary>
+        private static void ApplyDialogueOverride(CaseDefinition definition)
+        {
+            if (definition == null)
+            {
+                return;
+            }
+
+            TextAsset json = Resources.Load<TextAsset>("Cases/Chapter1Dialogues");
+            if (json == null || string.IsNullOrEmpty(json.text))
+            {
+                return;
+            }
+
+            DialogueLibrary library = JsonUtility.FromJson<DialogueLibrary>(json.text);
+            if (library == null || library.scripts == null || library.scripts.Count == 0)
+            {
+                return;
+            }
+
+            definition.Dialogues = library.scripts;
         }
 
         private CaseDefinition ResolveDefinition()
