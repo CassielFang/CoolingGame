@@ -80,7 +80,7 @@ namespace CoolingGame.Presentation
             }
             else
             {
-                ShowToast("点击任意一张卡牌开始调查。", true);
+                ShowToast("把资料拖到灯下，就能开始查案。", true);
             }
         }
 
