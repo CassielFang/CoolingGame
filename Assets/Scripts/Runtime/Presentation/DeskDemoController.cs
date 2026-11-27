@@ -108,6 +108,16 @@ namespace CoolingGame.Presentation
             }
 
             definition.Dialogues = library.scripts;
+
+            TextAsset paperJson = Resources.Load<TextAsset>("Cases/Chapter1Newspapers");
+            if (paperJson != null && !string.IsNullOrEmpty(paperJson.text))
+            {
+                var papers = JsonUtility.FromJson<NewspaperLibrary>(paperJson.text);
+                if (papers != null && papers.newspapers != null && papers.newspapers.Count > 0)
+                {
+                    definition.Newspapers = papers.newspapers;
+                }
+            }
         }
 
         private CaseDefinition ResolveDefinition()
