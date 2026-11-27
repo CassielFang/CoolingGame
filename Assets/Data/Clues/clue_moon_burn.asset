@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 08677fc7295de5c45959865a20c53208, type: 3}
+  m_Name: clue_moon_burn
+  m_EditorClassIdentifier: Assembly-CSharp::FocusTest.FocusClueData
+  _clueId: clue_moon_burn
+  _sourceCard: {fileID: 11400000, guid: 8a8cb89addf033b41940939d34316dad, type: 2}
+  _text: "\u718F\u9ED1\u7684\u5F2F\u6708\u94DC\u7247"
+  _detail: "\u534A\u622A\u5F2F\u6708\u5F62\u94DC\u7247\uFF0C\u8FB9\u7F18\u6709\u706B\u718F\u7684\u75D5\u8FF9\uFF0C\u5F27\u5EA6\u5BF9\u5F97\u4E0A\u949F\u6446\u7684\u6447\u6746\u3002"
+  _kind: 2

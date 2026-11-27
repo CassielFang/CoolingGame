@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 029edd041b62a044ea243646b67245c0, type: 3}
+  m_Name: focus_card_03
+  m_EditorClassIdentifier: Assembly-CSharp::FocusTest.FocusCardData
+  _cardId: focus_03
+  _displayName: "\u7D2B\u9525\u5361"
+  _description: "\u4E00\u679A\u5C16\u7AEF\u671D\u4E0A\u7684\u7D2B\u94DC\u94A5\u5319\uFF0C\u9F7F\u69FD\u78E8\u6210\u4E86\u4E09\u89D2\u5F62\u2014\u2014\u80FD\u6253\u5F00\u949F\u697C\u9876\u5C42\u7684\u95E8\u3002"
+  _category: 2
+  _frontSprite: {fileID: 21300000, guid: 049cb5ed92527a145b41ccbd78698709, type: 3}
+  _backSprite: {fileID: 21300000, guid: 5ced0f2062fce5b4ea4c88c4396f3e90, type: 3}
+  _portrait: {fileID: 0}
+  _portraitTint: {r: 1, g: 1, b: 1, a: 1}

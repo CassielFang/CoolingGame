@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2a95ca03624b01f41b4e912d3e9857b5, type: 3}
+  m_Name: -1
+  m_EditorClassIdentifier: Assembly-CSharp::FocusTest.FocusVisualNovel
+  _novelId: -1
+  _frames:
+  - Background: 
+    LeftPortrait: "\u83AB\u91CC\u68EE\uFF08\u6697\uFF09"
+    RightPortrait: 
+    Speaker: "\u65C1\u767D"
+    Line: "\uFF08\u6D4B\u8BD5\u6587\u672C\uFF09\u4E00\u4E2A\u6708\u524D\uFF0C\u8B66\u5C40\u63A5\u5230\u62A5\u6848\uFF0C\u4E00\u540D\u73E0\u5B9D\u5E97\u5E97\u4E3B\u88AB\u6740\u6B7B\u5728\u4E86\u65AF\u5A01\u514B\u57CE\u4E1C\u7684\u7816\u74E6\u5DF7\u8857\u9053\u3002"
+    BeforeLine:
+      m_PersistentCalls:
+        m_Calls: []
+    AfterLine:
+      m_PersistentCalls:
+        m_Calls: []
+  _interrupts: []

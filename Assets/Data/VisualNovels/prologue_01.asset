@@ -1,0 +1,61 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2a95ca03624b01f41b4e912d3e9857b5, type: 3}
+  m_Name: prologue_01
+  m_EditorClassIdentifier: Assembly-CSharp::FocusTest.FocusVisualNovel
+  _novelId: prologue_01
+  _frames:
+  - Background: 
+    LeftPortrait: 
+    RightPortrait: 
+    Speaker: "\u65C1\u767D"
+    Line: "\u949F\u697C\u7684\u94DC\u949F\u505C\u5728\u4E09\u523B\u4E0A\uFF0C\u98CE\u4ECE\u7A97\u7F1D\u91CC\u94BB\u8FDB\u6765\u3002"
+    BeforeLine:
+      m_PersistentCalls:
+        m_Calls: []
+    AfterLine:
+      m_PersistentCalls:
+        m_Calls: []
+  - Background: bg_lab.png
+    LeftPortrait: "\u963F\u5C9A"
+    RightPortrait: 
+    Speaker: "\u963F\u5C9A"
+    Line: "\u66F4\u592B\u8BF4\uFF0C\u7184\u706F\u4E4B\u540E\u522B\u5F80\u9876\u5C42\u53BB\u3002"
+    BeforeLine:
+      m_PersistentCalls:
+        m_Calls: []
+    AfterLine:
+      m_PersistentCalls:
+        m_Calls: []
+  - Background: 
+    LeftPortrait: 
+    RightPortrait: "\u94F6\u77B3"
+    Speaker: "\u94F6\u77B3"
+    Line: "\u53EF\u4ED6\u8981\u627E\u7684\u90A3\u628A\u94A5\u5319\uFF0C\u5C31\u9501\u5728\u9876\u5C42\u3002"
+    BeforeLine:
+      m_PersistentCalls:
+        m_Calls: []
+    AfterLine:
+      m_PersistentCalls:
+        m_Calls: []
+  - Background: 
+    LeftPortrait: "\u963F\u5C9A\uFF08\u6697\uFF09"
+    RightPortrait: "\u94F6\u77B3"
+    Speaker: "\u963F\u5C9A"
+    Line: "\u90A3\u5C31\u4E0A\u53BB\u2014\u2014\u4F60\u8D70\u524D\u9762\u3002"
+    BeforeLine:
+      m_PersistentCalls:
+        m_Calls: []
+    AfterLine:
+      m_PersistentCalls:
+        m_Calls: []
+  _interrupts: []

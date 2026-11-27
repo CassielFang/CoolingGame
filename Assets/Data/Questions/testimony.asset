@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 076982bb68eb6a84986ffb0da00b0e1e, type: 3}
+  m_Name: testimony
+  m_EditorClassIdentifier: Assembly-CSharp::FocusTest.FocusQuestionData
+  _questionId: testimony
+  _title: "\u4EBA\u8BC1"
+  _hint: "\u8C01\u7684\u8BF4\u6CD5\u80FD\u5BF9\u4E0A\uFF1F"
+  _example: "\u770B\u89C1\u949F\u6446\u505C\u4E0B\u7684\u90A3\u4E2A\u4EBA"
+  _acceptedClues:
+  - {fileID: 11400000, guid: cb22fea99fccce94b95c23882569160e, type: 2}
+  - {fileID: 11400000, guid: 84816323473bd6d4186871aa47f78cdc, type: 2}

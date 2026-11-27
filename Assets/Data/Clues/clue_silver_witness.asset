@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 08677fc7295de5c45959865a20c53208, type: 3}
+  m_Name: clue_silver_witness
+  m_EditorClassIdentifier: Assembly-CSharp::FocusTest.FocusClueData
+  _clueId: clue_silver_witness
+  _sourceCard: {fileID: 11400000, guid: 6261471433f06174a9e1003c6e897763, type: 2}
+  _text: "\u300C\u6211\u770B\u89C1\u949F\u6446\u505C\u4E86\u300D"
+  _detail: "\u94F6\u77B3\u8BF4\u81EA\u5DF1\u770B\u89C1\u949F\u6446\u505C\u4E0B\u7684\u90A3\u4E00\u523B\uFF0C\u53EF\u949F\u697C\u7684\u949F\u5F53\u5929\u672C\u6765\u5C31\u6162\u4E86\u534A\u523B\u3002"
+  _kind: 3

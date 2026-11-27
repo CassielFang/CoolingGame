@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 08677fc7295de5c45959865a20c53208, type: 3}
+  m_Name: clue_moon_half
+  m_EditorClassIdentifier: Assembly-CSharp::FocusTest.FocusClueData
+  _clueId: clue_moon_half
+  _sourceCard: {fileID: 11400000, guid: 8a8cb89addf033b41940939d34316dad, type: 2}
+  _text: "\u53EA\u5269\u534A\u622A\u7684\u5F27\u5EA6"
+  _detail: "\u65AD\u53E3\u662F\u9F50\u7684\uFF0C\u53E6\u4E00\u534A\u5E94\u8BE5\u8FD8\u5728\u522B\u5904\u2014\u2014\u4E0D\u50CF\u81EA\u7136\u6298\u65AD\u3002"
+  _kind: 2
