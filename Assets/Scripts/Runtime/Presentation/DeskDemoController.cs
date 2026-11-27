@@ -76,7 +76,7 @@ namespace CoolingGame.Presentation
             if (opening != null && _dialogue != null)
             {
                 // 开局先放剧情，放完再落回桌面
-                _dialogue.Play(opening, () => ShowToast("点击任意一张卡牌开始调查。", true));
+                _dialogue.Play(opening, () => ShowToast("把资料拖到灯下，就能开始查案。", true));
             }
             else
             {
