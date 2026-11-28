@@ -37,11 +37,11 @@ namespace CoolingGame.EditorTools
             { "哈罗德神父", "" }
         };
 
-        [MenuItem("CoolingGame/批量导入/文案表 → 剧本与报纸")]
+        [MenuItem("CoolingGame/批量导入/内容 → 游戏数据（xlsx / xml）")]
         public static void ImportWithDialog()
         {
             string start = Directory.Exists("documents") ? Path.GetFullPath("documents") : Application.dataPath;
-            string path = EditorUtility.OpenFilePanel("选择第一章文案表", start, "xlsx");
+            string path = EditorUtility.OpenFilePanel("选择第一章内容（xlsx 或 xml）", start, "xlsx,xml");
             if (string.IsNullOrEmpty(path))
             {
                 return;
@@ -51,30 +51,43 @@ namespace CoolingGame.EditorTools
             Import(path);
         }
 
-        [MenuItem("CoolingGame/批量导入/重新导入上次的文案表")]
+        [MenuItem("CoolingGame/批量导入/重新导入上次的内容")]
         public static void ReimportLast()
         {
             string path = EditorPrefs.GetString(LastPathKey, string.Empty);
             if (string.IsNullOrEmpty(path) || !File.Exists(path))
             {
-                Debug.LogWarning("[导入] 还没有记录过文案表路径，先用「文案表 → 剧本与报纸」选一次。");
+                Debug.LogWarning("[导入] 还没有记录过内容文件路径，先用「内容 → 游戏数据」选一次。");
                 return;
             }
 
             Import(path);
         }
 
-        /// <summary>纯逻辑入口：给自动化/测试调用，不弹窗。</summary>
-        public static void Import(string xlsxPath)
+        /// <summary>
+        /// 纯逻辑入口：给自动化/测试调用，不弹窗。
+        /// 按扩展名分派：.xml 走剧本模板，.xlsx 走策划的表格。
+        /// </summary>
+        public static void Import(string contentPath)
         {
-            List<XlsxReader.Sheet> sheets = XlsxReader.Read(xlsxPath);
-            if (sheets.Count == 0)
-            {
-                throw new InvalidDataException("表里没有可读的 sheet：" + xlsxPath);
-            }
+            List<DialogueScript> scripts;
+            List<NewspaperDefinition> newspapers;
 
-            List<DialogueScript> scripts = ReadDialogues(sheets);
-            List<NewspaperDefinition> newspapers = ReadNewspapers(sheets);
+            if (contentPath.EndsWith(".xml", StringComparison.OrdinalIgnoreCase))
+            {
+                XmlContentImporter.Read(contentPath, out scripts, out newspapers);
+            }
+            else
+            {
+                List<XlsxReader.Sheet> sheets = XlsxReader.Read(contentPath);
+                if (sheets.Count == 0)
+                {
+                    throw new InvalidDataException("表里没有可读的 sheet：" + contentPath);
+                }
+
+                scripts = ReadDialogues(sheets);
+                newspapers = ReadNewspapers(sheets);
+            }
 
             WriteJson(DialogueJsonPath, JsonUtility.ToJson(new DialogueLibrary { scripts = scripts }, true));
             WriteJson(NewspaperJsonPath, JsonUtility.ToJson(new NewspaperLibrary { newspapers = newspapers }, true));
@@ -89,7 +102,7 @@ namespace CoolingGame.EditorTools
             }
 
             Debug.Log(string.Format("[导入] 完成：{0} 段剧本 / {1} 句台词 / {2} 篇报纸 → {3}",
-                scripts.Count, lineCount, newspapers.Count, Path.GetFileName(xlsxPath)));
+                scripts.Count, lineCount, newspapers.Count, Path.GetFileName(contentPath)));
         }
 
         // ── 剧本 ────────────────────────────────────────────────────────────

@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ============================================================================
+  第一章内容模板（剧本 + 报纸）
+  ============================================================================
+
+  用途
+  ====
+  - 这是「源文件」：人写、能 diff、能合分支，比 xlsx 适合版本控制。
+  - 改完用菜单 CoolingGame/批量导入/内容 XML → 游戏数据 导入，
+    或者直接用 CoolingGame/剧本编辑器 打开可视化编辑（改的也是这个文件）。
+  - 导入会生成 Resources/Cases/Chapter1Dialogues.json 与 Chapter1Newspapers.json，
+    游戏运行时优先读这两份 JSON，所以改完内容不需要重新编译。
+
+  约定
+  ====
+  - id 全局唯一：剧本用 VN01…、报纸用 N01…，和配方/阶段里引用的 ID 保持一致。
+  - 角色在 <characters> 里定义一次，剧本里用 id 引用，换立绘只改一处。
+  - 一句一行：<line> 里的文本就是玩家看到的那句话，不要换行（要换行就拆成两句）。
+  - left / right 填角色 id；留空表示这一侧没有人。
+  - left-dim / right-dim="true" 表示这一侧是「暗的」（不是说话方），对应策划表的「（暗）」。
+  - speaker 留空时自动用左侧角色的名字。
+
+  最小可用的一个剧本
+  ====
+  <dialogue id="VN01" title="第一阶段结束">
+    <line speaker="莫里森" left="MP01">都一个月了，怎么还找不到凶手！</line>
+  </dialogue>
+-->
+
+<chapter>
+
+  <!-- ── 角色 ──────────────────────────────────────────────────────────────
+       portrait：默认立绘；smile / question 对应另外两个表情（可留空）。
+       值就是 ArtLibrary 的键，指向 Assets/Resources/Art/ 下的图。
+  -->
+  <characters>
+    <character id="MP01" name="莫里森" portrait="char/mp01_default" smile="char/mp01_smile" question="char/mp01_question" />
+    <character id="MP02" name="雪莉" portrait="char/mp02_default" smile="char/mp02_smile" question="char/mp02_question" />
+    <character id="SP02" name="警员" portrait="char/p08_officer" />
+    <character id="P01" name="塞德里克" portrait="char/p01_cedric" />
+    <character id="P02" name="哈罗德神父" portrait="" />
+    <character id="P06" name="舞女" portrait="char/p06_dancer" />
+    <character id="P07" name="沙龙女主人" portrait="char/p07_salon" />
+  </characters>
+
+  <!-- ── 剧本 ──────────────────────────────────────────────────────────────
+       一段 = 一个 <dialogue>，id 要和阶段/配方里配的 EnterDialogueId / ClosingDialogueId
+       / DialogueId 对得上。下面只给示范，完整剧本见 documents/第一章剧本.xml。
+  -->
+  <dialogues>
+
+    <dialogue id="VN01" title="第一阶段结束">
+      <!-- 单人说话：只有左侧立绘 -->
+      <line speaker="莫里森" left="MP01">都一个月了，怎么还找不到凶手！</line>
+
+      <!-- 双人：左侧说话，右侧压暗 -->
+      <line speaker="莫里森" left="MP01" right="SP02" right-dim="true">上级又在警告我了，再抓不到犯人，全警队都要倒霉！</line>
+
+      <!-- 旁白：没有立绘，说话人写「旁白」 -->
+      <line speaker="旁白">在莫里森的训斥下，警局立刻又忙碌了起来。</line>
+
+      <!-- 右侧说话，左侧压暗 -->
+      <line speaker="雪莉" left="MP01" left-dim="true" right="MP02">我找莫里森警长。</line>
+
+      <!-- 换表情：加 expression="smile" / "question" -->
+      <line speaker="雪莉" left="MP01" left-dim="true" right="MP02" expression="smile">我是亨利先生的朋友。</line>
+    </dialogue>
+
+  </dialogues>
+
+  <!-- ── 报纸 ──────────────────────────────────────────────────────────────
+       一行一个 <line>，第一行会被当作报头/日期行，其余拼成正文。
+       id 要和 RecipeDefinition.OutputNewspaperId / StageDefinition.EnterNewspaperId 对上。
+  -->
+  <newspapers>
+
+    <newspaper id="N01" title="《斯威克的连环杀手》">
+      <line>斯威克邮报 1895年10月4日 头版</line>
+      <line>砖瓦巷的连环凶案</line>
+      <line>砖瓦巷的连环凶杀案发生已有月余，斯威克城已是人心惶惶。</line>
+      <line>一个月前，一名珠宝店店主被杀死在砖瓦巷，两周前，议员卡林顿之子也死在了临近的地方。</line>
+    </newspaper>
+
+  </newspapers>
+
+</chapter>
