@@ -1,0 +1,50 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6b3ac7f0a41d4b0e9a37f41c0b63b8d2, type: 3}
+  m_Name: ArtTuningSettings
+  m_EditorClassIdentifier: CoolingGame.Runtime::CoolingGame.Presentation.ArtTuning.ArtTuningSettings
+  VnStanding:
+    apply: 1
+    left:
+      apply: 1
+      anchor: 3
+      gapLeft: 70
+      gapRight: 70
+      gapBottom: 40
+      scale: 1
+      baseSize: {x: 700, y: 900}
+      dim: 0.42
+      rawMode: 0
+      artScale: 1
+      artOffset: {x: 0, y: 0}
+      flipHorizontal: 0
+    right:
+      apply: 1
+      anchor: 4
+      gapLeft: 70
+      gapRight: 70
+      gapBottom: 40
+      scale: 1
+      baseSize: {x: 700, y: 900}
+      dim: 0.42
+      rawMode: 0
+      artScale: 1
+      artOffset: {x: 0, y: 0}
+      flipHorizontal: 0
+    applyDim: 0
+    dimStrength: 0.42
+    applyArt: 0
+    unifiedHeight: 820
+    unifiedAlignY: 0
+    applyBackground: 0
+    backgroundTop: {r: 0.06, g: 0.06, b: 0.075, a: 1}
+    backgroundBottom: {r: 0.015, g: 0.015, b: 0.02, a: 1}

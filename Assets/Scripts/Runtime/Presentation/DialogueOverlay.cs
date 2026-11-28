@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using CoolingGame.Core;
+using CoolingGame.Presentation.ArtTuning;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -15,6 +16,53 @@ namespace CoolingGame.Presentation
     {
         private Image _left;
         private Image _right;
+        private Image _backdrop;
+
+        /// <summary>美术调试窗口在 Play 中通过它找到真实的立绘（只读；换流程后重来即可）。</summary>
+        public Image LeftPortrait
+        {
+            get { return _left; }
+        }
+
+        public Image RightPortrait
+        {
+            get { return _right; }
+        }
+
+        public Image BackdropImage
+        {
+            get { return _backdrop; }
+        }
+
+        /// <summary>
+        /// 当前这一句左边 / 右边是不是说话人（美术调试的压暗要用它区分「亮的那一侧」）。
+        /// 直接读演出数据里的 (暗) 标记，不再靠亮度反推——美术调试把亮度改掉也不会误判。
+        /// </summary>
+        public bool SpeakingLeft
+        {
+            get
+            {
+                return _left != null
+                       && _left.enabled
+                       && _left.sprite != null
+                       && !_leftDimmed;
+            }
+        }
+
+        public bool SpeakingRight
+        {
+            get
+            {
+                return _right != null
+                       && _right.enabled
+                       && _right.sprite != null
+                       && !_rightDimmed;
+            }
+        }
+
+        private bool _leftDimmed;
+        private bool _rightDimmed;
+
         private Text _speaker;
         private Text _body;
         private Text _hint;
@@ -69,8 +117,22 @@ namespace CoolingGame.Presentation
             advance.transition = Selectable.Transition.None;
             advance.onClick.AddListener(Advance);
 
+            // 背景层：默认就是整块纯黑（美术调试里换成渐变时只改这一层）
+            // 注意：挂按钮之前建，这样它不会吃点击
+            RectTransform backdrop = UIFactory.MakePanel(root, "Backdrop", new Color(0.02f, 0.02f, 0.02f, 1f));
+            UIFactory.Stretch(backdrop);
+            _backdrop = backdrop.GetComponent<Image>();
+            _backdrop.raycastTarget = false;
+            backdrop.SetAsFirstSibling();
+            advance.targetGraphic = _backdrop;
+
             _left = MakePortrait(root, "Left", new Vector2(0f, 0f), new Vector2(0f, 0f), new Vector2(70f, 40f));
             _right = MakePortrait(root, "Right", new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(-70f, 40f));
+
+            // 美术调试：执行器每帧按 ArtTuningSettings 刷新立绘位置/匹配/背景。
+            // 根节点会先被 SetActive(false)，所以执行器用 LateUpdate 读参数，挂在根上也不受开关影响。
+            var applier = root.gameObject.AddComponent<ArtTuning.VnStandingApplier>();
+            applier.Bind(_left, _right, _backdrop, root);
 
             // 对话框：美术的对话框九宫格
             RectTransform box = UIFactory.MakePanel(root, "DialogueBox", new Color(0.88f, 0.84f, 0.76f, 1f));
@@ -137,6 +199,10 @@ namespace CoolingGame.Presentation
             DialogueLine line = _script.Lines[index];
             _lineShown = false;
 
+            // 先把演出数据里的说话人状态记下来，再落表现（压暗 / 贴图）
+            _leftDimmed = line.LeftDimmed;
+            _rightDimmed = line.RightDimmed;
+
             ApplyPortrait(_left, line.LeftArtKey, line.LeftDimmed);
             ApplyPortrait(_right, line.RightArtKey, line.RightDimmed);
 
@@ -150,6 +216,10 @@ namespace CoolingGame.Presentation
             _typing = StartCoroutine(TypeLine(line.Text));
         }
 
+        /// <summary>
+        /// 换行换人：贴图 / 显隐由这里管。
+        /// 亮度也由这里给一个默认值，但「美术调试」接管压暗时每帧由 VnStandingApplier 覆盖。
+        /// </summary>
         private void ApplyPortrait(Image image, string artKey, bool dimmed)
         {
             if (image == null)
@@ -161,13 +231,21 @@ namespace CoolingGame.Presentation
             image.sprite = art;
             image.enabled = art != null;
 
+            // 换人换了图：让「图怎么摆进框」按新素材重新算一遍
+            var matcher = image.GetComponent<VnPortraitMatcher>();
+            if (matcher != null && matcher.enabled)
+            {
+                matcher.MarkDirty();
+            }
+
             if (art == null)
             {
                 return;
             }
 
-            // 说话的一方亮，另一方压暗（策划表的「（暗）」）
-            float value = dimmed ? 0.42f : 1f;
+            // 说话的一方亮，另一方压暗（策划表的「（暗）」）。
+            // 「美术调试」接管压暗时，每帧由 VnStandingApplier 按设置重算亮度，这里给的是原值。
+            float value = dimmed ? VnStandingSide.DefaultDim : 1f;
             image.color = new Color(value, value, value, 1f);
         }
 
