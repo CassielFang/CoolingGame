@@ -21,6 +21,9 @@ namespace CoolingGame.Presentation.ArtTuning
         [Tooltip("视觉小说：左右立绘")]
         public VnStandingSettings VnStanding = new VnStandingSettings();
 
+        [Tooltip("视觉小说：对话框（位置 / 尺寸 / 比例）")]
+        public VnDialogSettings Dialog = new VnDialogSettings();
+
         private static ArtTuningSettings _current;
 
         /// <summary>当前生效的参数：Resources 里的资产；没有就是带出厂默认值的临时实例。</summary>
@@ -68,6 +71,8 @@ namespace CoolingGame.Presentation.ArtTuning
         {
             VnStanding = VnStanding ?? new VnStandingSettings();
             VnStanding.Sanitize();
+            Dialog = Dialog ?? new VnDialogSettings();
+            Dialog.Sanitize();
         }
     }
 }

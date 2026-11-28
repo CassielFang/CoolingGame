@@ -52,3 +52,16 @@ MonoBehaviour:
     applyBackground: 0
     backgroundTop: {r: 0.06, g: 0.06, b: 0.075, a: 1}
     backgroundBottom: {r: 0.015, g: 0.015, b: 0.02, a: 1}
+  Dialog:
+    apply: 0
+    anchor: 5
+    gapLeft: 0
+    gapRight: 0
+    gapBottom: 36
+    offsetX: 0
+    offsetY: 0
+    width: 1560
+    height: 148
+    widthByScreen: 0
+    widthPercent: 81.25
+    scale: 1

@@ -65,6 +65,7 @@ namespace CoolingGame.Presentation.ArtTuning
                     instance.hideFlags = HideFlags.DontSave;
                     instance.EnsureDefaults();
                     instance.VnStanding.CopyFrom(Saved.VnStanding);
+                    instance.Dialog.CopyFrom(Saved.Dialog);
                     _working = instance;
                 }
 
@@ -82,11 +83,22 @@ namespace CoolingGame.Presentation.ArtTuning
             }
         }
 
+        public static VnDialogSettings WorkingDialog
+        {
+            get
+            {
+                ArtTuningSettings working = Working;
+                working.EnsureDefaults();
+                return working.Dialog;
+            }
+        }
+
         /// <summary>读取：Saved → Working。</summary>
         public static void LoadSaved()
         {
             Working.EnsureDefaults();
             Working.VnStanding.CopyFrom(Saved.VnStanding);
+            Working.Dialog.CopyFrom(Saved.Dialog);
             Saved.EnsureDefaults();
             Working.EnsureDefaults();
         }
@@ -95,6 +107,7 @@ namespace CoolingGame.Presentation.ArtTuning
         public static void SaveWorking()
         {
             Saved.VnStanding.CopyFrom(WorkingVnStanding);
+            Saved.Dialog.CopyFrom(WorkingDialog);
             Saved.EnsureDefaults();
         }
 
@@ -123,7 +136,8 @@ namespace CoolingGame.Presentation.ArtTuning
                    || !SameSide(working.right, saved.right)
                    || working.applyBackground != saved.applyBackground
                    || working.backgroundTop != saved.backgroundTop
-                   || working.backgroundBottom != saved.backgroundBottom;
+                   || working.backgroundBottom != saved.backgroundBottom
+                   || !SameDialog(Working.Dialog, Saved.Dialog);
         }
 
         /// <summary>加载 / 存档后丢掉缓存（资产被替换、域重载前后用）。</summary>
@@ -157,6 +171,27 @@ namespace CoolingGame.Presentation.ArtTuning
                    && Mathf.Approximately(a.artScale, b.artScale)
                    && a.artOffset == b.artOffset
                    && a.flipHorizontal == b.flipHorizontal;
+        }
+
+        private static bool SameDialog(VnDialogSettings a, VnDialogSettings b)
+        {
+            if (a == null || b == null)
+            {
+                return a == b;
+            }
+
+            return a.apply == b.apply
+                   && a.anchor == b.anchor
+                   && Mathf.Approximately(a.gapLeft, b.gapLeft)
+                   && Mathf.Approximately(a.gapRight, b.gapRight)
+                   && Mathf.Approximately(a.gapBottom, b.gapBottom)
+                   && Mathf.Approximately(a.offsetX, b.offsetX)
+                   && Mathf.Approximately(a.offsetY, b.offsetY)
+                   && Mathf.Approximately(a.width, b.width)
+                   && Mathf.Approximately(a.height, b.height)
+                   && a.widthByScreen == b.widthByScreen
+                   && Mathf.Approximately(a.widthPercent, b.widthPercent)
+                   && Mathf.Approximately(a.scale, b.scale);
         }
     }
 }

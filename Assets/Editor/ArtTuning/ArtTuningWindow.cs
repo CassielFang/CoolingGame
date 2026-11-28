@@ -30,6 +30,7 @@ namespace CoolingGame.EditorTools.ArtTuning
             return new IArtTuningPage[]
             {
                 new VnStandingPage(),
+                new VnDialogPage(),
             };
         }
 
@@ -136,9 +137,8 @@ namespace CoolingGame.EditorTools.ArtTuning
         private void DrawStorageBar()
         {
             VnStandingSettings working = _working != null ? _working.VnStanding : null;
-            VnStandingSettings saved = ArtTuningStore.Saved != null ? ArtTuningStore.Saved.VnStanding : null;
 
-            bool dirty = IsDirty(working, saved);
+            bool dirty = ArtTuningStore.IsWorkingDirty();
 
             GUILayout.BeginHorizontal(EditorStyles.toolbar);
 
@@ -259,6 +259,7 @@ namespace CoolingGame.EditorTools.ArtTuning
             {
                 _working.EnsureDefaults();
                 _working.VnStanding.CopyFrom(ArtTuningStore.Saved.VnStanding);
+                _working.Dialog.CopyFrom(ArtTuningStore.Saved.Dialog);
             }
 
             GUI.FocusControl(null);

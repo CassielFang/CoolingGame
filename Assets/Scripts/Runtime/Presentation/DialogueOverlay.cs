@@ -66,6 +66,13 @@ namespace CoolingGame.Presentation
         private Text _speaker;
         private Text _body;
         private Text _hint;
+        private RectTransform _box;
+
+        /// <summary>对话框的 RectTransform（美术调试里「定位对话框」要用）。</summary>
+        public RectTransform DialogueBox
+        {
+            get { return _box; }
+        }
 
         private DialogueScript _script;
         private int _index;
@@ -136,6 +143,7 @@ namespace CoolingGame.Presentation
 
             // 对话框：美术的对话框九宫格
             RectTransform box = UIFactory.MakePanel(root, "DialogueBox", new Color(0.88f, 0.84f, 0.76f, 1f));
+            _box = box;
             box.anchorMin = new Vector2(0.5f, 0f);
             box.anchorMax = new Vector2(0.5f, 0f);
             box.pivot = new Vector2(0.5f, 0f);
@@ -166,6 +174,9 @@ namespace CoolingGame.Presentation
             _hint = UIFactory.MakeText(box, "Hint", "点击继续", 15,
                 new Color(Palette.Paper.r, Palette.Paper.g, Palette.Paper.b, 0.45f), TextAnchor.LowerRight);
             UIFactory.PlaceRightBottom(_hint.rectTransform, 56, 16, 200, 24);
+
+            // 美术调试：对话框的位置 / 尺寸 / 比例。没接管时它会把上面这些原值原样还原。
+            box.gameObject.AddComponent<ArtTuning.VnDialogApplier>().Bind(box, root);
         }
 
         private Image MakePortrait(RectTransform root, string name, Vector2 anchor, Vector2 pivot, Vector2 offset)
