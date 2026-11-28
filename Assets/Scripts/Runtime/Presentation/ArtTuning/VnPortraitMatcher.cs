@@ -35,6 +35,15 @@ namespace CoolingGame.Presentation.ArtTuning
             }
         }
 
+        /// <summary>把压暗/提亮的颜色同步到真正显示的那张图上。</summary>
+        public void SyncTint(Color color)
+        {
+            if (_art != null)
+            {
+                _art.color = color;
+            }
+        }
+
         /// <summary>参数或贴图刚变过：立即重摆一次（不等下一帧）。</summary>
         public void MarkDirty()
         {
@@ -92,7 +101,9 @@ namespace CoolingGame.Presentation.ArtTuning
             _art.color = _root.color;
             _art.sprite = sprite;
             _art.enabled = true;
-            ArtImagePlacement.Layer(_art, _placement, _native.sqrMagnitude > 0f ? _native : sprite.rect.size);
+
+            Vector2 native = _native.sqrMagnitude > 0f ? _native : sprite.rect.size;
+            ArtImagePlacement.Layer(_art, _placement, native);
 
             if (_mask == null)
             {

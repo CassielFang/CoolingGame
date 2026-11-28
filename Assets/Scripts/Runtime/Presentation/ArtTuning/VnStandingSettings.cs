@@ -166,7 +166,10 @@ namespace CoolingGame.Presentation.ArtTuning
             return side.ScaledSize();
         }
 
-        /// <summary>这一侧的图最终怎么摆在框里（匹配 / 原始尺寸 / 老行为）。</summary>
+        /// <summary>
+        /// 这一侧的图最终怎么摆在框里（匹配 / 原始尺寸 / 老行为）。
+        /// <paramref name="rawSize"/> / <paramref name="fitInside"/> 来自这一侧设置的「图的摆放」。
+        /// </summary>
         public ArtImagePlacement ResolveArt(bool isLeft, bool useLiveSettings, Vector2 canvasSize,
                                             Vector2 native, bool flipHorizontal)
         {
@@ -191,6 +194,17 @@ namespace CoolingGame.Presentation.ArtTuning
             }
 
             return ArtImagePlacement.ResolveRaw(native, side.artScale, side.artOffset);
+        }
+
+        /// <summary>
+        /// 这一侧的图在框里最后占哪块（框局部坐标，可能超出框，超出部分被裁掉）。
+        /// 三种模式（老行为 / 统一基准高 / 原始尺寸）都走 <see cref="ResolveArt"/>，
+        /// 边距因此可以按「图的可见边缘」而不是「框的边缘」来量。
+        /// </summary>
+        public ArtImagePlacement ResolvePlacement(bool isLeft, bool useLiveSettings, Vector2 native)
+        {
+            VnStandingSide side = ResolveSide(isLeft, useLiveSettings);
+            return ResolveArt(isLeft, useLiveSettings, FrameSize(side), native, false);
         }
 
         /// <summary>是否镜像（只在启用时生效）。</summary>

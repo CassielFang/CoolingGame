@@ -23,6 +23,8 @@ MonoBehaviour:
       scale: 1
       baseSize: {x: 700, y: 900}
       dim: 0.42
+      positionOnVisibleEdge: 1
+      pos: {x: 0, y: 0}
       rawMode: 0
       artScale: 1
       artOffset: {x: 0, y: 0}
@@ -36,6 +38,8 @@ MonoBehaviour:
       scale: 1
       baseSize: {x: 700, y: 900}
       dim: 0.42
+      positionOnVisibleEdge: 1
+      pos: {x: 0, y: 0}
       rawMode: 0
       artScale: 1
       artOffset: {x: 0, y: 0}

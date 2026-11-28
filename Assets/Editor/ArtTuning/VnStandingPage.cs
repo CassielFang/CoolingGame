@@ -172,7 +172,7 @@ namespace CoolingGame.EditorTools.ArtTuning
             using (new EditorGUI.DisabledScope(!usesLeft))
             {
                 side.gapLeft = EditorGUILayout.FloatField(
-                    new GUIContent("离屏幕左边", "立绘框左边缘到屏幕左边缘的距离（像素）。只有靠左的位置用得到"),
+                    new GUIContent("离屏幕左边", "立绘图片露出来的左边缘，到屏幕左边缘的距离（像素）。只有靠左的位置用得到"),
                     side.gapLeft,
                     GUILayout.Width(220f));
             }
@@ -180,7 +180,7 @@ namespace CoolingGame.EditorTools.ArtTuning
             using (new EditorGUI.DisabledScope(!usesRight))
             {
                 side.gapRight = EditorGUILayout.FloatField(
-                    new GUIContent("离屏幕右边", "立绘框右边缘到屏幕右边缘的距离（像素）。只有靠右的位置用得到"),
+                    new GUIContent("离屏幕右边", "立绘图片露出来的右边缘，到屏幕右边缘的距离（像素）。只有靠右的位置用得到"),
                     side.gapRight,
                     GUILayout.Width(220f));
             }
@@ -188,7 +188,7 @@ namespace CoolingGame.EditorTools.ArtTuning
             using (new EditorGUI.DisabledScope(!usesBottom))
             {
                 side.gapBottom = EditorGUILayout.FloatField(
-                    new GUIContent("离屏幕下边", "立绘框下边缘到屏幕下边缘的距离（像素）。只有贴底的位置用得到"),
+                    new GUIContent("离屏幕下边", "立绘图片露出来的下边缘，到屏幕下边缘的距离（像素）。只有贴底的位置用得到"),
                     side.gapBottom,
                     GUILayout.Width(220f));
             }
@@ -414,20 +414,97 @@ namespace CoolingGame.EditorTools.ArtTuning
         /// <summary>「实际框 x..y / 离边多少」这类说明，让美术能核对。</summary>
         private static string Describe(VnStandingSettings tuning, VnStandingSide side, bool isLeft)
         {
-            Vector2 canvas = new Vector2(1920f, 1080f);
-            Vector2 size = side.ScaledSize();
+            Vector2 canvas = CanvasSize();
+            Vector2 frame = side.ScaledSize();
+            Rect art = ArtRectOf(tuning, side, isLeft);
+            Vector2 pos = FramePosition(tuning, side, isLeft);
             Vector2 anchorPos = PortraitAnchorMath.ToAnchorPosition(side.anchor);
-            Vector2 pos = PortraitAnchorMath.ToAnchoredPosition(side.anchor, size, side.gapLeft, side.gapRight,
-                side.gapBottom);
+            Vector2 pivot = PortraitAnchorMath.ToPivot(side.anchor);
 
             // 与 RectTransform 的算法保持一致：锚点处 + 偏移 - 枢轴 × 尺寸
-            Vector2 pivot = PortraitAnchorMath.ToPivot(side.anchor);
-            float left = anchorPos.x * canvas.x + pos.x - pivot.x * size.x;
-            float bottom = anchorPos.y * canvas.y + pos.y - pivot.y * size.y;
+            float frameLeft = anchorPos.x * canvas.x + pos.x - pivot.x * frame.x;
+            float frameBottom = anchorPos.y * canvas.y + pos.y - pivot.y * frame.y;
 
-            return string.Format("{0}：框 {1:0}×{2:0}，屏幕 x {3:0}~{4:0}，y {5:0}~{6:0}",
-                PortraitAnchorMath.DisplayName(side.anchor), size.x, size.y,
-                left, left + size.x, bottom, bottom + size.y);
+            // layout 的原点是框中心；图上露出来的那块 = 图与框的交集
+            float artLeft = frameLeft + frame.x * 0.5f + art.x;
+            float artBottom = frameBottom + frame.y * 0.5f + art.y;
+            float visLeft = Mathf.Max(frameLeft, artLeft);
+            float visRight = Mathf.Min(frameLeft + frame.x, artLeft + art.width);
+            float visBottom = Mathf.Max(frameBottom, artBottom);
+            float visTop = Mathf.Min(frameBottom + frame.y, artBottom + art.height);
+
+            return string.Format("{0}：图 {1:0}×{2:0}（框 {3:0}×{4:0}），屏幕 x {5:0}~{6:0}，y {7:0}~{8:0}",
+                PortraitAnchorMath.DisplayName(side.anchor),
+                Mathf.Max(0f, visRight - visLeft), Mathf.Max(0f, visTop - visBottom), frame.x, frame.y,
+                visLeft, visRight, visBottom, visTop);
+        }
+
+        /// <summary>场景里实际用的画布尺寸（编辑器里没跑游戏时按 1920×1080 算）。</summary>
+        private static Vector2 CanvasSize()
+        {
+            DialogueOverlay overlay = FindOverlay();
+            if (overlay != null)
+            {
+                var root = overlay.transform.root;
+                var canvas = root != null
+                    ? root.GetComponent<Canvas>()
+                    : null;
+                if (canvas == null)
+                {
+                    canvas = overlay.GetComponentInParent<Canvas>();
+                }
+
+                var area = canvas != null ? canvas.GetComponent<RectTransform>() : null;
+                if (area != null && area.rect.size.x > 1f)
+                {
+                    return area.rect.size;
+                }
+            }
+
+            return new Vector2(1920f, 1080f);
+        }
+
+        /// <summary>这一侧此刻（按当前可能存在的立绘）图在框里占哪块（框局部坐标，原点 = 框中心）。</summary>
+        private static Rect ArtRectOf(VnStandingSettings tuning, VnStandingSide node, bool isLeft)
+        {
+            DialogueOverlay overlay = FindOverlay();
+            Image image = overlay != null
+                ? (isLeft ? overlay.LeftPortrait : overlay.RightPortrait)
+                : null;
+            return ArtRectOf(tuning, image, node, isLeft);
+        }
+
+        private static Rect ArtRectOf(VnStandingSettings tuning, Image image, VnStandingSide node, bool isLeft)
+        {
+            Vector2 frameSize = node != null ? node.ScaledSize() : new Vector2(700f, 900f);
+            Sprite sprite = image != null ? image.sprite : null;
+
+            // 没有图时按「图 = 框」算，边距就退化成量框边（和画面上的实际表现一致）
+            Vector2 native = sprite != null ? sprite.rect.size : frameSize;
+            if (tuning == null)
+            {
+                return new Rect(-frameSize.x * 0.5f, -frameSize.y * 0.5f, frameSize.x, frameSize.y);
+            }
+
+            // 与运行时用的是同一套换算（VnStandingApplier.ApplySide 里的 ResolveArt）
+            ArtImagePlacement placement = tuning.ResolvePlacement(isLeft, true, native);
+            return placement.VisibleRect;
+        }
+
+        /// <summary>按当前边距算出框的 AnchoredPosition（只用来显示，不下发）。</summary>
+        private static Vector2 FramePosition(VnStandingSettings tuning, VnStandingSide side, bool isLeft)
+        {
+            Rect art = ArtRectOf(tuning, side, isLeft);
+            Vector2 frame = side.ScaledSize();
+            bool visibleEdge = tuning.apply && side.apply;
+            if (visibleEdge)
+            {
+                return PortraitArtMath.FrameAnchoredPosition(side.anchor, frame, CanvasSize(), art,
+                    side.gapLeft, side.gapRight, side.gapBottom);
+            }
+
+            return PortraitAnchorMath.ToAnchoredPosition(side.anchor, frame, side.gapLeft, side.gapRight,
+                side.gapBottom);
         }
 
         private static void ApplyPreset(VnStandingSettings tuning, VnStandingSide side, PortraitAnchor anchor,
@@ -465,6 +542,7 @@ namespace CoolingGame.EditorTools.ArtTuning
             {
                 context.Undo("美术调试：抄回左侧");
                 tuning.left.ReadFrom(overlay.LeftPortrait.rectTransform);
+                tuning.left.ReadGaps(CanvasSize(), ArtRectOf(tuning, overlay.LeftPortrait, tuning.left, true));
                 any = true;
             }
 
@@ -472,6 +550,7 @@ namespace CoolingGame.EditorTools.ArtTuning
             {
                 context.Undo("美术调试：抄回右侧");
                 tuning.right.ReadFrom(overlay.RightPortrait.rectTransform);
+                tuning.right.ReadGaps(CanvasSize(), ArtRectOf(tuning, overlay.RightPortrait, tuning.right, false));
                 any = true;
             }
 

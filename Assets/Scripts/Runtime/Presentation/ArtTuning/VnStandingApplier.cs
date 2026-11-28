@@ -55,10 +55,10 @@ namespace CoolingGame.Presentation.ArtTuning
 
             bool live = tuning.apply;
 
-            ApplyFrame(_left, true, tuning, canvasSize, live);
-            ApplyFrame(_right, false, tuning, canvasSize, live);
-            ApplyImage(_left, true, tuning, canvasSize, live);
-            ApplyImage(_right, false, tuning, canvasSize, live);
+            // 图在框里占哪块和框摆在哪必须用同一份结果：先算摆放，再摆图，最后按
+            // 「图露出来的边」把框挪到位
+            ApplySide(_left, true, tuning, canvasSize, live);
+            ApplySide(_right, false, tuning, canvasSize, live);
             ApplyBackdrop(tuning);
             ApplyDim();
         }
@@ -84,7 +84,7 @@ namespace CoolingGame.Presentation.ArtTuning
 
         private static void ApplySideDim(Image image, bool speaking, VnStandingSettings tuning, bool live, bool isLeft)
         {
-            if (image == null || !image.enabled)
+            if (image == null)
             {
                 return;
             }
@@ -102,9 +102,21 @@ namespace CoolingGame.Presentation.ArtTuning
             }
 
             image.color = new Color(value, value, value, color.a);
+
+            // 接管图的摆放时，真正显示的是子物体 Art（根 Image 被 matcher 关掉了），颜色要同步过去
+            var matcher = image.GetComponent<VnPortraitMatcher>();
+            if (matcher != null && matcher.enabled)
+            {
+                matcher.SyncTint(image.color);
+            }
         }
 
-        private void ApplyFrame(Image image, bool isLeft, VnStandingSettings tuning, Vector2 canvasSize, bool live)
+        /// <summary>
+        /// 一侧的完整处理：先算「图在框里占哪块」，把图摆上去，再按同一份结果把框挪到
+        /// 「图露出来的边正好落在边距上」的位置。两步共用一次计算，所以不会再出现
+        /// 「数值对、画面错」。
+        /// </summary>
+        private void ApplySide(Image image, bool isLeft, VnStandingSettings tuning, Vector2 canvasSize, bool live)
         {
             if (image == null)
             {
@@ -112,18 +124,38 @@ namespace CoolingGame.Presentation.ArtTuning
             }
 
             VnStandingSide side = tuning.ResolveSide(isLeft, live);
+            Vector2 frameSize = side.ScaledSize();
+            Vector2 native = NativeSizeOf(image);
+
+            // 三种模式（老行为 / 统一基准高 / 原始尺寸）都由 ResolveArt 给出最终摆放（画布单位）
+            ArtImagePlacement placement = tuning.ResolveArt(isLeft, live, canvasSize, native,
+                tuning.ResolveFlip(isLeft, live));
+
+            // 接管了才按「图的可见边」量；没接管沿用老行为（量框的边缘），保证和代码原值一致
+            bool visibleEdge = live && tuning.IsSideActive(isLeft);
+            side.ApplyPosition(frameSize, canvasSize, placement.VisibleRect, visibleEdge);
             side.WriteTo(image.rectTransform);
+
+            // 框写完之后再摆图：图是框的子物体，要把缩放折回去才不会双重缩放
+            ApplyArt(image, placement, native, live && tuning.applyArt, side.ScaleAbs);
         }
 
-        private void ApplyImage(Image image, bool isLeft, VnStandingSettings tuning, Vector2 canvasSize, bool live)
+        private static Vector2 NativeSizeOf(Image image)
         {
-            if (image == null)
-            {
-                return;
-            }
+            Sprite sprite = image != null ? image.sprite : null;
+            return sprite != null ? sprite.rect.size : new Vector2(VnStandingSide.DefaultWidth,
+                VnStandingSide.DefaultHeight);
+        }
 
+        /// <summary>
+        /// 把图摆进框（只在「管图的摆放」开着时挂 matcher，否则回到原 Image 行为）。
+        /// <paramref name="parentScale"/> 是框的 localScale：图是框的子物体会被它再缩一次，
+        /// 所以这里先把画布单位的摆放折成框的局部单位。
+        /// </summary>
+        private static void ApplyArt(Image image, ArtImagePlacement placement, Vector2 native, bool artOn,
+                                     float parentScale)
+        {
             var matcher = image.GetComponent<VnPortraitMatcher>();
-            bool artOn = live && tuning.applyArt;
 
             if (!artOn)
             {
@@ -145,19 +177,21 @@ namespace CoolingGame.Presentation.ArtTuning
                 matcher.enabled = true;
             }
 
-            Sprite sprite = image.sprite;
-            if (sprite == null)
+            if (image.sprite == null)
             {
                 return;
             }
 
-            Vector2 native = sprite.rect.size;
-            ArtImagePlacement placement = tuning.ResolveArt(isLeft, live, canvasSize, native,
-                tuning.ResolveFlip(isLeft, live));
+            float s = parentScale > 0.0001f ? parentScale : 1f;
+            ArtImagePlacement local = new ArtImagePlacement
+            {
+                Scale = placement.Scale / s,
+                Size = placement.Size / s,
+                Offset = placement.Offset / s
+            };
 
-            // 「统一基准高 / 塞进框」这两种老模式没有裁切；原始尺寸模式一律按框裁
-            bool clip = !(tuning.unifiedHeight > 0f || tuning.ResolveSide(isLeft, live).rawMode == ArtRawMode.FitInside);
-            matcher.SetPlacement(placement, native, clip);
+            // 超出框的部分一律裁掉：框就是画框，露出来的边才是边距量的那条边
+            matcher.SetPlacement(local, native, true);
         }
 
         private void ApplyBackdrop(VnStandingSettings tuning)

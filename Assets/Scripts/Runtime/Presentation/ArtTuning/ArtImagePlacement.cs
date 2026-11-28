@@ -127,5 +127,11 @@ namespace CoolingGame.Presentation.ArtTuning
                     Mathf.Max(native.y, placement.Size.y));
             }
         }
+
+        /// <summary>图在框里的可见矩形（框局部坐标，以框中心为原点）。</summary>
+        public Rect VisibleRect
+        {
+            get { return new Rect(Offset.x - Size.x * 0.5f, Offset.y - Size.y * 0.5f, Size.x, Size.y); }
+        }
     }
 }
